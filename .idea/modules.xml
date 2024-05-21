@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/cubeclash-boxpvp.iml" filepath="$PROJECT_DIR$/cubeclash-boxpvp.iml" />
+      <module fileurl="file://$PROJECT_DIR$/m4code-sprawdzanie.iml" filepath="$PROJECT_DIR$/m4code-sprawdzanie.iml" />
+    </modules>
+  </component>
+</project>
