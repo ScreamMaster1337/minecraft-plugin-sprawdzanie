@@ -1,6 +1,5 @@
 package pl.m4code.commands.api;
 
-import com.google.common.collect.ImmutableMultimap;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.SneakyThrows;
@@ -9,8 +8,6 @@ import org.bukkit.command.defaults.BukkitCommand;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import pl.m4code.Main;
-import pl.m4code.configuration.Configuration;
-import pl.m4code.configuration.MessageConfiguration;
 import pl.m4code.utils.TextUtil;
 
 
@@ -23,8 +20,6 @@ public abstract class CommandAPI extends BukkitCommand {
     private final String permission;
 
     private final Main instance = Main.getInstance();
-    private final Configuration configuration = instance.getConfiguration();
-    private final MessageConfiguration messageConfiguration = instance.getMessageConfiguration();
 
     @SneakyThrows
     public CommandAPI(@NotNull String name, String permission, @NotNull String description, @NotNull String usageMessage, @NotNull List<String> aliases) {
@@ -41,15 +36,11 @@ public abstract class CommandAPI extends BukkitCommand {
             } catch (Exception e) {
                 var message = e.getMessage();
 
-                if(commandSender.hasPermission("clash")) TextUtil.sendMessage(commandSender, "&4" + message);
+                if(commandSender.hasPermission("andrzejek")) TextUtil.sendMessage(commandSender, "&4" + message);
                 else TextUtil.sendMessage(commandSender, "&cWystąpił błąd poczas wykonywania polecenia!");
                 e.printStackTrace();
                 return false;
             }
-        } else {
-            messageConfiguration
-                    .getNoPermission()
-                    .send((Player) commandSender);
         }
         return false;
     }
@@ -59,12 +50,6 @@ public abstract class CommandAPI extends BukkitCommand {
         List<String> completions = tab((Player) sender, args);
         if (completions == null) return new ArrayList<>();
         else return completions;
-    }
-
-    public void sendUsage(Player player) {
-        messageConfiguration.getCorrectUsage()
-                .addPlaceholder(ImmutableMultimap.of("[USAGE]", getUsage()))
-                .send(player);
     }
 
     public abstract void execute(CommandSender sender, String[] args) throws IOException;

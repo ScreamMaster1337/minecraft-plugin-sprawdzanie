@@ -5,10 +5,9 @@
       <configuration>
         <autoDetectTypes>
           <platformType>PAPER</platformType>
-          <platformType>ADVENTURE</platformType>
-          <platformType>SPIGOT</platformType>
-          <platformType>BUKKIT</platformType>
+          <platformType>BUNGEECORD</platformType>
         </autoDetectTypes>
+        <projectReimportVersion>1</projectReimportVersion>
       </configuration>
     </facet>
   </component>

@@ -17,11 +17,6 @@
       <option name="url" value="https://oss.sonatype.org/content/groups/public/" />
     </remote-repository>
     <remote-repository>
-      <option name="id" value="codemc-repo" />
-      <option name="name" value="codemc-repo" />
-      <option name="url" value="https://repo.codemc.io/repository/maven-public/" />
-    </remote-repository>
-    <remote-repository>
       <option name="id" value="papermc-repo" />
       <option name="name" value="papermc-repo" />
       <option name="url" value="https://repo.papermc.io/repository/maven-public/" />
@@ -37,9 +32,9 @@
       <option name="url" value="https://repo1.maven.org/maven2" />
     </remote-repository>
     <remote-repository>
-      <option name="id" value="panda-repository" />
-      <option name="name" value="panda-repository" />
-      <option name="url" value="https://repo.panda-lang.org/releases" />
+      <option name="id" value="sk89q-repo" />
+      <option name="name" value="sk89q-repo" />
+      <option name="url" value="https://maven.enginehub.org/repo/" />
     </remote-repository>
     <remote-repository>
       <option name="id" value="papermc" />
@@ -47,24 +42,39 @@
       <option name="url" value="https://repo.papermc.io/repository/maven-public/" />
     </remote-repository>
     <remote-repository>
-      <option name="id" value="sk89q-repo" />
-      <option name="name" value="sk89q-repo" />
-      <option name="url" value="https://maven.enginehub.org/repo/" />
-    </remote-repository>
-    <remote-repository>
       <option name="id" value="okaeri-repo" />
       <option name="name" value="okaeri-repo" />
       <option name="url" value="https://storehouse.okaeri.eu/repository/maven-public/" />
     </remote-repository>
     <remote-repository>
-      <option name="id" value="essentials-repo" />
-      <option name="name" value="essentials-repo" />
-      <option name="url" value="https://hub.spigotmc.org/nexus/content/repositories/snapshots/" />
+      <option name="id" value="central" />
+      <option name="name" value="central" />
+      <option name="url" value="https://repo.maven.apache.org/maven2" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="minebench-repo" />
+      <option name="name" value="minebench-repo" />
+      <option name="url" value="https://repo.codemc.io/repository/minebench/" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="minebench-repo" />
+      <option name="name" value="minebench-repo" />
+      <option name="url" value="https://repo.minebench.de/" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="dmulloy2-repo" />
+      <option name="name" value="dmulloy2-repo" />
+      <option name="url" value="https://repo.dmulloy2.net/repository/public/" />
     </remote-repository>
     <remote-repository>
       <option name="id" value="jboss.community" />
       <option name="name" value="JBoss Community repository" />
       <option name="url" value="https://repository.jboss.org/nexus/content/repositories/public/" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="bungeecord-repo" />
+      <option name="name" value="bungeecord-repo" />
+      <option name="url" value="https://oss.sonatype.org/content/repositories/snapshots" />
     </remote-repository>
   </component>
 </project>

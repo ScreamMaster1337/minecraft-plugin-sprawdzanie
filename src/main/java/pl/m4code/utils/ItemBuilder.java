@@ -57,17 +57,6 @@ public class ItemBuilder {
         return this;
     }
 
-    public ItemBuilder setGlow(boolean glow) {
-        if (glow) {
-            addEnchantment(Enchantment.BINDING_CURSE, 1);
-            this.meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-        } else {
-            for (Enchantment enchantment : this.meta.getEnchants().keySet()) {
-                this.meta.removeEnchant(enchantment);
-            }
-        }
-        return this;
-    }
 
     public ItemBuilder hideAttributes() {
         this.meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);

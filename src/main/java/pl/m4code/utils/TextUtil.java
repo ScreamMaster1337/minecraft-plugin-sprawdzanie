@@ -37,8 +37,4 @@ public class TextUtil {
     public static void sendActionBar(Player player, String message) {
         player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(fixColor(message)));
     }
-
-    public static void sendLogger(String message) {
-        Bukkit.getLogger().info(fixColor(message));
-    }
 }

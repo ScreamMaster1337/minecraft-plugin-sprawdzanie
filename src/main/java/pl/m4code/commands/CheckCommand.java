@@ -1,186 +1,239 @@
 package pl.m4code.commands;
 
-import com.google.common.collect.ImmutableMultimap;
+import lombok.NonNull;
+import org.bukkit.BanList;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.jetbrains.annotations.NotNull;
 import pl.m4code.Main;
 import pl.m4code.commands.api.CommandAPI;
 import pl.m4code.utils.TextUtil;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class CheckCommand extends CommandAPI implements Listener {
+    private static final String CHECK_PERMISSION = "m4code.check";
+    private static final String RELOAD_PERMISSION = "m4code.reload";
+    private static final String EXEMPT_PERMISSION = "m4code.check.bypass";
+    private Location checkLocation;
+    private Location clearLocation;
+    private final Set<UUID> beingChecked;
 
-    private final Map<Player, Integer> titleTasks = new HashMap<>();
-
-    public CheckCommand() {
+    public CheckCommand(Set<UUID> beingChecked) {
         super(
                 "check",
-                "check",
                 "",
-                "/check sprawdz <zacznij/czysty/cheater/brakwspolpracy> <nick>",
-                List.of("sprawdz", "check")
+                "",
+                "/check <reload|sprawdz|set1|set2|czysty|cheater>",
+                List.of("")
         );
+        this.beingChecked = beingChecked;
         Bukkit.getPluginManager().registerEvents(this, Main.getInstance());
+        loadCheckState();
     }
 
     @Override
     public void execute(CommandSender sender, String[] args) {
-        if (!(sender instanceof Player player)) {
-            TextUtil.sendMessage(sender, "&cPodana komenda jest dostępna tylko dla graczy!");
+        if (!sender.hasPermission(CHECK_PERMISSION)) {
+            TextUtil.sendMessage(sender, getConfigMessage("messages.no_permission"));
             return;
         }
 
-        if (args.length >= 2 && args[0].equalsIgnoreCase("sprawdz")) {
-            String action = args[1].toLowerCase();
+        if (args.length == 0) {
+            TextUtil.sendMessage(sender, getConfigMessage("messages.usage"));
+            return;
+        }
 
-            switch (action) {
-                case "zacznij":
-                    if (args.length >= 3) {
-                        Player target = Bukkit.getPlayer(args[2]);
-                        if (target == null) {
-                            getMessageConfiguration()
-                                    .getIncorrectPlayer()
-                                    .addPlaceholder(ImmutableMultimap.of("[PLAYER]", args[2]))
-                                    .send(player);
-                            return;
-                        }
+        FileConfiguration config = Main.getInstance().getConfig();
+        String adminName = sender instanceof Player ? ((Player) sender).getName() : "Console";
 
-                        startChecking(player, target);
-                    } else {
-                        sendUsage(player);
-                    }
-                    break;
-                case "czysty":
-                case "cheater":
-                case "brakwspolpracy":
-                    if (args.length >= 3) {
-                        Player target = Bukkit.getPlayer(args[2]);
-                        if (target == null) {
-                            getMessageConfiguration()
-                                    .getIncorrectPlayer()
-                                    .addPlaceholder(ImmutableMultimap.of("[PLAYER]", args[2]))
-                                    .send(player);
-                            return;
-                        }
+        switch (args[0].toLowerCase()) {
+            case "reload":
+                if (sender.hasPermission(RELOAD_PERMISSION)) {
+                    Main.getInstance().reloadConfig();
+                    loadCheckState();
+                    TextUtil.sendMessage(sender, getConfigMessage("messages.reload"));
+                } else {
+                    TextUtil.sendMessage(sender, getConfigMessage("messages.no_permission"));
+                }
+                break;
+            case "sprawdz":
+                if (args.length < 2) {
+                    TextUtil.sendMessage(sender, getConfigMessage("messages.usage_sprawdz"));
+                    return;
+                }
+                Player target = Bukkit.getPlayer(args[1]);
+                if (target == null) {
+                    TextUtil.sendMessage(sender, getConfigMessage("messages.player_not_found"));
+                    return;
+                }
+                if (target.equals(sender)) {
+                    TextUtil.sendMessage(sender, getConfigMessage("messages.cannot_check_self"));
+                    return;
+                }
+                if (target.hasPermission(EXEMPT_PERMISSION)) {
+                    TextUtil.sendMessage(sender, getConfigMessage("messages.cannot_check_exempt"));
+                    return;
+                }
+                if (checkLocation == null) {
+                    TextUtil.sendMessage(sender, getConfigMessage("messages.check_location_not_set"));
+                    return;
+                }
+                target.teleport(checkLocation);
+                startTitleTask(target);
+                TextUtil.sendMessage(sender, getConfigMessage("messages.check_started").replace("%player%", target.getName()));
+                Bukkit.broadcastMessage(TextUtil.fixColor(getConfigMessage("messages.check_started_broadcast").replace("%player%", target.getName()).replace("%admin%", adminName)));
+                beingChecked.add(target.getUniqueId());
+                break;
+            case "set1":
+                if (!(sender instanceof Player)) {
+                    TextUtil.sendMessage(sender, getConfigMessage("messages.console_cannot_set_location"));
+                    return;
+                }
+                Player player = (Player) sender;
+                checkLocation = player.getLocation();
+                config.set("check.location", checkLocation);
+                Main.getInstance().saveConfig();
+                TextUtil.sendMessage(sender, getConfigMessage("messages.check_location_set"));
+                break;
+            case "set2":
+                if (!(sender instanceof Player)) {
+                    TextUtil.sendMessage(sender, getConfigMessage("messages.console_cannot_set_location"));
+                    return;
+                }
+                player = (Player) sender;
+                clearLocation = player.getLocation();
+                config.set("clear.location", clearLocation);
+                Main.getInstance().saveConfig();
+                TextUtil.sendMessage(sender, getConfigMessage("messages.clear_location_set"));
+                break;
+            case "czysty":
+                if (args.length < 2) {
+                    TextUtil.sendMessage(sender, getConfigMessage("messages.usage_czysty"));
+                    return;
+                }
+                target = Bukkit.getPlayer(args[1]);
+                if (target == null) {
+                    TextUtil.sendMessage(sender, getConfigMessage("messages.player_not_found"));
+                    return;
+                }
+                if (!beingChecked.contains(target.getUniqueId())) {
+                    TextUtil.sendMessage(sender, getConfigMessage("messages.player_not_being_checked").replace("%player%", target.getName()));
+                    return;
+                }
+                if (clearLocation == null) {
+                    TextUtil.sendMessage(sender, getConfigMessage("messages.clear_location_not_set"));
+                    return;
+                }
+                target.teleport(clearLocation);
+                Bukkit.broadcastMessage(TextUtil.fixColor(getConfigMessage("messages.player_czysty").replace("%player%", target.getName()).replace("%admin%", adminName)));
+                beingChecked.remove(target.getUniqueId());
+                break;
+            case "cheater":
+                if (args.length < 2) {
+                    TextUtil.sendMessage(sender, getConfigMessage("messages.usage_cheater"));
+                    return;
+                }
+                target = Bukkit.getPlayer(args[1]);
+                if (target == null) {
+                    TextUtil.sendMessage(sender, getConfigMessage("messages.player_not_found"));
+                    return;
+                }
+                if (!beingChecked.contains(target.getUniqueId())) {
+                    TextUtil.sendMessage(sender, getConfigMessage("messages.player_not_being_checked").replace("%player%", target.getName()));
+                    return;
+                }
+                String cheaterCommand = config.getString("console_commands.cheater").replace("%player%", target.getName());
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cheaterCommand);
+                TextUtil.sendMessage(sender, getConfigMessage("messages.player_cheater").replace("%player%", target.getName()).replace("%admin%", adminName));
+                beingChecked.remove(target.getUniqueId());
+                break;
+            default:
+                TextUtil.sendMessage(sender, getConfigMessage("messages.unknown_subcommand"));
+                break;
+        }
+    }
 
-                        if (!Main.sprawdzani.contains(target)) {
-                            player.sendMessage(TextUtil.fixColor("&cGracz " + target.getName() + " nie jest aktualnie sprawdzany!"));
-                            return;
-                        }
+    private void loadCheckState() {
+        FileConfiguration config = Main.getInstance().getConfig();
+        checkLocation = (Location) config.get("check.location");
+        clearLocation = (Location) config.get("clear.location");
+    }
 
-                        switch (action) {
-                            case "czysty":
-                                teleportAndNotify(player, target, "&aGracz jest czysty!");
-                                teleportAndNotify(target, target, "&aOkazałeś się czysty! &7Życzymy dalszej miłej gry");
-                                break;
-                            case "cheater":
-                                banAndNotify(player, target, "&cGracz jest cheaterem! Został zbanowany na 3 dni.");
-                                break;
-                            case "brakwspolpracy":
-                                banAndNotify(player, target, "&eGracz odmówił współpracy z administracją. Został zbanowany na 2 dni.");
-                                break;
-                        }
-                    } else {
-                        sendUsage(player);
-                    }
-                    break;
-                default:
-                    sendUsage(player);
+    private String getConfigMessage(String path) {
+        FileConfiguration config = Main.getInstance().getConfig();
+        String message = config.getString(path);
+        return message;
+    }
+
+    private void startTitleTask(Player player) {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (!beingChecked.contains(player.getUniqueId())) {
+                    this.cancel();
+                    return;
+                }
+                player.sendTitle(TextUtil.fixColor(getConfigMessage("messages.check_title")), TextUtil.fixColor(getConfigMessage("messages.check_subtitle")), 10, 70, 20);
             }
-        } else {
-            sendUsage(player);
-        }
-    }
-
-    private void startChecking(Player player, Player target) {
-        target.sendTitle(TextUtil.fixColor("&#fb0000&lJ&#fb0909&lE&#fb1313&lS&#fb1c1c&lT&#fc2525&lE&#fc2f2f&lŚ &#fc3838&lS&#fc4141&lP&#fc4b4b&lR&#fc5454&lA&#fc5d5d&lW&#fc6767&lD&#fd7070&lZ&#fd7979&lA&#fd8383&lN&#fd8c8c&lY"), TextUtil.fixColor("&eStosuj się do poleceń administratora!"));
-        Main.sprawdzani.add(target);
-
-        double x = 0.5;
-        double y = 50.0;
-        double z = 78.5;
-        float fixedYaw = 180.0f;
-
-        World world = Bukkit.getServer().getWorld("Requlogia");
-        Location checkLocation = new Location(world, x, y, z, fixedYaw, 0);
-        player.teleport(checkLocation);
-        target.teleport(checkLocation);
-
-        int taskId = Bukkit.getScheduler().runTaskTimer(Main.getInstance(), () -> updateTitle(target), 0, 20).getTaskId();
-        titleTasks.put(player, taskId);
-
-        player.sendMessage(TextUtil.fixColor("&aRozpocząłeś sprawdzanie gracza " + target.getName() + "."));
-    }
-
-    private void updateTitle(Player target) {
-        target.sendTitle(TextUtil.fixColor("&#fb0000&lJ&#fb0909&lE&#fb1313&lS&#fb1c1c&lT&#fc2525&lE&#fc2f2f&lŚ &#fc3838&lS&#fc4141&lP&#fc4b4b&lR&#fc5454&lA&#fc5d5d&lW&#fc6767&lD&#fd7070&lZ&#fd7979&lA&#fd8383&lN&#fd8c8c&lY"), TextUtil.fixColor("&eStosuj się do poleceń administratora!"), 0, 20, 0);
-    }
-
-    private void teleportAndNotify(Player player, Player target, String message) {
-
-        double x = 0.5;
-        double y = 54.0;
-        double z = 30.5;
-        float fixedYaw = 180.0f;
-
-        World world = Bukkit.getServer().getWorld("Requlogia");
-        Location czystyLocation = new Location(world, x, y, z, fixedYaw, 0);
-
-        target.teleport(czystyLocation);
-        player.teleport(czystyLocation);
-        Main.sprawdzani.remove(target);
-        player.sendMessage(TextUtil.fixColor(message));
-
-        cancelTitleTask(player);
-    }
-
-    private void banAndNotify(Player player, Player target, String message) {
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tempban " + target.getName() + " 3d");
-        player.sendMessage(TextUtil.fixColor(message));
-
-        cancelTitleTask(player);
-    }
-
-    private void cancelTitleTask(Player player) {
-        Integer taskId = titleTasks.get(player);
-        if (taskId != null) {
-            Bukkit.getScheduler().cancelTask(taskId);
-            titleTasks.remove(player);
-        }
+        }.runTaskTimer(Main.getInstance(), 0, 20); // Refresh every 5 seconds (100 ticks)
     }
 
     @Override
-    public List<String> tab(Player player, String[] args) {
-        if (args.length == 1) {
-            return List.of("sprawdz");
-        } else if (args.length == 2 && "sprawdz".startsWith(args[1].toLowerCase())) {
-            return List.of("zacznij", "czysty", "cheater", "brakwspolpracy");
-        } else if (args.length == 3) return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
+    public List<String> tab(@NonNull Player player, @NotNull @NonNull String[] args) {
+        if (!player.hasPermission(CHECK_PERMISSION)) {
+            return List.of();
+        }
 
-        return Collections.emptyList();
+        if (args.length == 1) {
+            return List.of("reload", "sprawdz", "set1", "set2", "czysty", "cheater");
+        } else if (args.length == 2 && (args[0].equalsIgnoreCase("sprawdz") || args[0].equalsIgnoreCase("czysty") || args[0].equalsIgnoreCase("cheater"))) {
+            return Bukkit.getOnlinePlayers().stream()
+                    .map(Player::getName)
+                    .collect(Collectors.toList());
+        }
+        return List.of();
+    }
+
+    @EventHandler
+    public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event) {
+        Player player = event.getPlayer();
+        if (beingChecked.contains(player.getUniqueId())) {
+            List<String> allowedCommands = Main.getInstance().getConfig().getStringList("allowed_commands");
+            String command = event.getMessage().split(" ")[0];
+            if (!allowedCommands.contains(command)) {
+                event.setCancelled(true);
+                TextUtil.sendMessage(player, getConfigMessage("messages.command_not_allowed"));
+            }
+        }
     }
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
-        handleLogoutDuringCheck(player);
+        if (beingChecked.contains(player.getUniqueId())) {
+            if (!isPlayerBanned(player)) {
+                String logoutCommand = Main.getInstance().getConfig().getString("console_commands.logout").replace("%player%", player.getName());
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), logoutCommand);
+                TextUtil.sendMessage(Bukkit.getConsoleSender(), getConfigMessage("messages.player_logged_out_during_check").replace("%player%", player.getName()));
+            }
+            beingChecked.remove(player.getUniqueId());
+        }
     }
 
-    private void handleLogoutDuringCheck(Player target) {
-        if (Main.sprawdzani.contains(target)) {
-            Bukkit.broadcastMessage(TextUtil.fixColor("&cGracz " + target.getName() + " wylogował się podczas sprawdzania!"));
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tempban " + target.getName() + " 3d");
-            Main.sprawdzani.remove(target);
-        }
+    private boolean isPlayerBanned(Player player) {
+        BanList banList = Bukkit.getBanList(BanList.Type.NAME);
+        return banList.isBanned(player.getName());
     }
 }

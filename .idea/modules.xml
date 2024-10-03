@@ -2,8 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/cubeclash-boxpvp.iml" filepath="$PROJECT_DIR$/cubeclash-boxpvp.iml" />
-      <module fileurl="file://$PROJECT_DIR$/m4code-sprawdzanie.iml" filepath="$PROJECT_DIR$/m4code-sprawdzanie.iml" />
+      <module fileurl="file://$PROJECT_DIR$/m4code-chat.iml" filepath="$PROJECT_DIR$/m4code-chat.iml" />
+      <module fileurl="file://$PROJECT_DIR$/m4code-spawn.iml" filepath="$PROJECT_DIR$/m4code-spawn.iml" />
     </modules>
   </component>
 </project>
